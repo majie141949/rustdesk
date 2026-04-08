@@ -536,14 +536,14 @@ jobs:
           flutter build ipa --release --no-codesign
 
       - name: Upload Artifacts
-        if: env.UPLOAD_ARTIFACT == 'true'
+        if: ${{ inputs.upload-artifact }}
         uses: actions/upload-artifact@master
         with:
           name: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.ipa
           path: flutter/build/ios/ipa/*.ipa
 
       - name: Publish ipa package
-        if: env.UPLOAD_ARTIFACT == 'true'
+        if: ${{ inputs.upload-artifact }}
         uses: softprops/action-gh-release@v1
         with:
           prerelease: true
