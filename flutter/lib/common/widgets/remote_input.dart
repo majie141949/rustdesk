@@ -10,6 +10,7 @@ import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/models/model.dart';
 import 'package:flutter_hbb/models/input_model.dart';
+import 'package:flutter_hbb/utils/touch_processor.dart';
 
 import './gestures.dart';
 
@@ -110,11 +111,41 @@ class _RawTouchGestureDetectorRegionState
   // Cache global position for onTap (which lacks position info).
   Offset? _lastTapDownGlobalPosition;
 
+  // Enhanced touch processor for precision control
+  late TouchProcessor _touchProcessor;
+  TouchProcessorConfig _touchProcessorConfig = TouchProcessorConfig.defaultConfig;
+
+  void _initTouchProcessor() {
+    final sensitivity = bind.mainGetLocalOption(key: kKeyTouchSensitivity);
+    switch (sensitivity) {
+      case kTouchSensitivityPrecise:
+        _touchProcessorConfig = TouchProcessorConfig.precise;
+        break;
+      case kTouchSensitivityFast:
+        _touchProcessorConfig = TouchProcessorConfig.fast;
+        break;
+      default:
+        _touchProcessorConfig = TouchProcessorConfig.defaultConfig;
+    }
+    _touchProcessor = TouchProcessor(config: _touchProcessorConfig);
+  }
+
+  void updateTouchProcessorConfig(TouchProcessorConfig config) {
+    _touchProcessorConfig = config;
+    _touchProcessor = TouchProcessor(config: config);
+  }
+
   FFI get ffi => widget.ffi;
   FfiModel get ffiModel => widget.ffiModel;
   InputModel get inputModel => widget.inputModel;
   bool get handleTouch => (isDesktop || isWebDesktop) || ffiModel.touchMode;
   SessionID get sessionId => ffi.sessionId;
+
+  @override
+  void initState() {
+    super.initState();
+    _initTouchProcessor();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -358,6 +389,10 @@ class _RawTouchGestureDetectorRegionState
     if (isNotTouchBasedDevice()) {
       return;
     }
+    
+    // Reset touch processor for new gesture
+    _touchProcessor.reset();
+    
     if (handleTouch) {
       if (lastTapDownDetails != null) {
         await ffi.cursorModel.move(lastTapDownDetails.localPosition.dx,
@@ -413,16 +448,27 @@ class _RawTouchGestureDetectorRegionState
     if (handleTouch && !_touchModePanStarted) {
       return;
     }
+
+    // Enhanced touch processing with acceleration, prediction and smoothing
+    final processedDelta = _touchProcessor.process(
+      rawDelta: d.delta,
+      position: d.localPosition,
+      timestamp: DateTime.now(),
+    );
+
     // In relative mouse mode, send delta directly without position tracking.
     if (inputModel.relativeMouseMode.value) {
-      await inputModel.sendMobileRelativeMouseMove(d.delta.dx, d.delta.dy);
+      await inputModel.sendMobileRelativeMouseMove(processedDelta.dx, processedDelta.dy);
     } else {
-      await ffi.cursorModel.updatePan(d.delta, d.localPosition, handleTouch);
+      await ffi.cursorModel.updatePan(processedDelta, d.localPosition, handleTouch);
     }
   }
 
   onOneFingerPanEnd(DragEndDetails d) async {
     _touchModePanStarted = false;
+    // Reset direction lock for next gesture
+    _touchProcessor.resetDirectionLock();
+    
     if (isNotTouchBasedDevice()) {
       return;
     }

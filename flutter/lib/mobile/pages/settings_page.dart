@@ -1131,6 +1131,17 @@ class _DisplayPage extends StatefulWidget {
 }
 
 class __DisplayPageState extends State<_DisplayPage> {
+  String _touchSensitivity = kTouchSensitivityDefault;
+
+  @override
+  void initState() {
+    super.initState();
+    _touchSensitivity = bind.mainGetLocalOption(key: kKeyTouchSensitivity);
+    if (_touchSensitivity.isEmpty) {
+      _touchSensitivity = kTouchSensitivityDefault;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final Map codecsJson = jsonDecode(bind.mainSupportedHwdecodings());
@@ -1208,6 +1219,22 @@ class __DisplayPageState extends State<_DisplayPage> {
                       await bind.mainSetUserDefaultOption(
                           key: kOptionCodecPreference, value: value);
                     },
+            ),
+            _getPopupDialogRadioEntry(
+              title: 'Touch Sensitivity',
+              list: [
+                _RadioEntry('Default', kTouchSensitivityDefault),
+                _RadioEntry('Precise', kTouchSensitivityPrecise),
+                _RadioEntry('Fast', kTouchSensitivityFast),
+              ],
+              getter: () => _touchSensitivity,
+              asyncSetter: (value) async {
+                await bind.mainSetLocalOption(
+                    key: kKeyTouchSensitivity, value: value);
+                setState(() {
+                  _touchSensitivity = value;
+                });
+              },
             ),
           ],
         ),

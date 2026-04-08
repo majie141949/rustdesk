@@ -262,6 +262,23 @@ const int kMinTrackpadSpeed = 10;
 const int kDefaultTrackpadSpeed = 100;
 const int kMaxTrackpadSpeed = 1000;
 
+// touch sensitivity
+const String kKeyTouchSensitivity = 'touch-sensitivity';
+const String kKeyTouchBaseMultiplier = 'touch-base-multiplier';
+const String kKeyTouchAccelerationFactor = 'touch-acceleration-factor';
+const String kKeyTouchSmoothingAlpha = 'touch-smoothing-alpha';
+const String kKeyTouchPredictionWeight = 'touch-prediction-weight';
+const String kTouchSensitivityDefault = 'default';
+const String kTouchSensitivityPrecise = 'precise';
+const String kTouchSensitivityFast = 'fast';
+
+// touch processor settings
+const double kDefaultTouchBaseMultiplier = 1.0;
+const double kDefaultTouchAccelerationFactor = 0.8;
+const double kDefaultTouchMaxAcceleration = 3.0;
+const double kDefaultTouchSmoothingAlpha = 0.4;
+const double kDefaultTouchPredictionWeight = 0.25;
+
 // relative mouse mode
 /// Throttle duration (in milliseconds) for updating pointer lock center during
 /// window move/resize events. Lower values provide more responsive updates but

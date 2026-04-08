@@ -1737,6 +1737,37 @@ class _Display extends StatefulWidget {
 }
 
 class _DisplayState extends State<_Display> {
+  String _touchSensitivity = kTouchSensitivityDefault;
+  double _customBaseMultiplier = kDefaultTouchBaseMultiplier;
+  double _customAccelerationFactor = kDefaultTouchAccelerationFactor;
+  double _customSmoothingAlpha = kDefaultTouchSmoothingAlpha;
+  double _customPredictionWeight = kDefaultTouchPredictionWeight;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTouchSettings();
+  }
+
+  void _loadTouchSettings() {
+    _touchSensitivity = bind.mainGetLocalOption(key: kKeyTouchSensitivity);
+    if (_touchSensitivity.isEmpty) {
+      _touchSensitivity = kTouchSensitivityDefault;
+    }
+    _customBaseMultiplier = double.tryParse(
+            bind.mainGetLocalOption(key: kKeyTouchBaseMultiplier)) ??
+        kDefaultTouchBaseMultiplier;
+    _customAccelerationFactor = double.tryParse(
+            bind.mainGetLocalOption(key: kKeyTouchAccelerationFactor)) ??
+        kDefaultTouchAccelerationFactor;
+    _customSmoothingAlpha = double.tryParse(
+            bind.mainGetLocalOption(key: kKeyTouchSmoothingAlpha)) ??
+        kDefaultTouchSmoothingAlpha;
+    _customPredictionWeight = double.tryParse(
+            bind.mainGetLocalOption(key: kKeyTouchPredictionWeight)) ??
+        kDefaultTouchPredictionWeight;
+  }
+
   @override
   Widget build(BuildContext context) {
     final scrollController = ScrollController();
@@ -1746,6 +1777,7 @@ class _DisplayState extends State<_Display> {
       imageQuality(context),
       codec(context),
       if (isDesktop) trackpadSpeed(context),
+      if (isDesktop) touchSensitivity(context),
       if (!isWeb) privacyModeImpl(context),
       other(context),
     ]).marginOnly(bottom: _kListViewBottomMargin);
@@ -1875,6 +1907,145 @@ class _DisplayState extends State<_Display> {
         onDebouncer: onDebouncer,
       ),
     ]);
+  }
+
+  Widget touchSensitivity(BuildContext context) {
+    final isCustom = _touchSensitivity == 'custom';
+    
+    void onSensitivityChanged(String value) async {
+      await bind.mainSetLocalOption(key: kKeyTouchSensitivity, value: value);
+      setState(() {
+        _touchSensitivity = value;
+      });
+    }
+
+    void onCustomParamChanged(String key, double value) async {
+      await bind.mainSetLocalOption(key: key, value: value.toStringAsFixed(2));
+      setState(() {});
+    }
+
+    return _Card(title: 'Touch Sensitivity', children: [
+      _Radio(context,
+          value: kTouchSensitivityDefault,
+          groupValue: _touchSensitivity,
+          label: 'Default',
+          onChanged: onSensitivityChanged),
+      _Radio(context,
+          value: kTouchSensitivityPrecise,
+          groupValue: _touchSensitivity,
+          label: 'Precise',
+          onChanged: onSensitivityChanged),
+      _Radio(context,
+          value: kTouchSensitivityFast,
+          groupValue: _touchSensitivity,
+          label: 'Fast',
+          onChanged: onSensitivityChanged),
+      _Radio(context,
+          value: 'custom',
+          groupValue: _touchSensitivity,
+          label: 'Custom',
+          onChanged: onSensitivityChanged),
+      if (isCustom) ...[
+        _buildSlider(
+          context: context,
+          label: 'Base Multiplier',
+          value: _customBaseMultiplier,
+          min: 0.5,
+          max: 2.0,
+          divisions: 15,
+          onChanged: (v) {
+            setState(() => _customBaseMultiplier = v);
+          },
+          onChangeEnd: (v) {
+            onCustomParamChanged(kKeyTouchBaseMultiplier, v);
+          },
+        ),
+        _buildSlider(
+          context: context,
+          label: 'Acceleration',
+          value: _customAccelerationFactor,
+          min: 0.0,
+          max: 2.0,
+          divisions: 20,
+          onChanged: (v) {
+            setState(() => _customAccelerationFactor = v);
+          },
+          onChangeEnd: (v) {
+            onCustomParamChanged(kKeyTouchAccelerationFactor, v);
+          },
+        ),
+        _buildSlider(
+          context: context,
+          label: 'Smoothing',
+          value: _customSmoothingAlpha,
+          min: 0.1,
+          max: 0.9,
+          divisions: 16,
+          onChanged: (v) {
+            setState(() => _customSmoothingAlpha = v);
+          },
+          onChangeEnd: (v) {
+            onCustomParamChanged(kKeyTouchSmoothingAlpha, v);
+          },
+        ),
+        _buildSlider(
+          context: context,
+          label: 'Prediction',
+          value: _customPredictionWeight,
+          min: 0.0,
+          max: 0.5,
+          divisions: 10,
+          onChanged: (v) {
+            setState(() => _customPredictionWeight = v);
+          },
+          onChangeEnd: (v) {
+            onCustomParamChanged(kKeyTouchPredictionWeight, v);
+          },
+        ),
+      ],
+    ]);
+  }
+
+  Widget _buildSlider({
+    required BuildContext context,
+    required String label,
+    required double value,
+    required double min,
+    required double max,
+    required int divisions,
+    required ValueChanged<double> onChanged,
+    required ValueChanged<double> onChangeEnd,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                translate(label),
+                style: TextStyle(fontSize: _kContentFontSize),
+              ),
+            ),
+            Text(
+              value.toStringAsFixed(2),
+              style: TextStyle(
+                fontSize: _kContentFontSize,
+                color: Theme.of(context).textTheme.bodySmall?.color,
+              ),
+            ),
+          ],
+        ).marginOnly(left: _kContentHMargin, bottom: 4),
+        Slider(
+          value: value,
+          min: min,
+          max: max,
+          divisions: divisions,
+          onChanged: onChanged,
+          onChangeEnd: onChangeEnd,
+        ).marginOnly(left: _kContentHMargin, right: _kContentHMargin),
+      ],
+    );
   }
 
   Widget codec(BuildContext context) {
